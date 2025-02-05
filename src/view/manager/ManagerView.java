@@ -4,11 +4,14 @@ import javax.swing.*;
 import java.awt.*;
 import com.formdev.flatlaf.FlatLightLaf;
 import view.Main;
+import view.customer.CustomerView;
 
 public class ManagerView extends JFrame {
     private JTabbedPane tabbedPane;
+    private int userId;
     
-    public ManagerView() {
+    public ManagerView(int userId) {
+        this.userId = userId;
         setTitle("Hệ thống quản lý");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 700);
@@ -34,8 +37,31 @@ public class ManagerView extends JFrame {
         // Thêm TabbedPane vào frame
         add(tabbedPane);
         
-        // Thêm nút đăng xuất
-        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Thêm nút đăng xuất và chuyển đổi
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        
+        // Nút chuyển sang khách hàng
+        JButton switchButton = new JButton("Chế độ khách hàng");
+        switchButton.setBackground(new Color(52, 152, 219)); // Màu xanh dương
+        switchButton.setForeground(Color.WHITE);
+        switchButton.setFocusPainted(false);
+        switchButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        switchButton.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có muốn chuyển sang giao diện khách hàng?",
+                "Xác nhận chuyển đổi",
+                JOptionPane.YES_NO_OPTION
+            );
+            
+            if (confirm == JOptionPane.YES_OPTION) {
+                dispose(); // Đóng cửa sổ hiện tại
+                new CustomerView(userId).setVisible(true);
+            }
+        });
+        
+        // Nút đăng xuất (giữ nguyên code cũ)
         JButton logoutButton = new JButton("Đăng xuất");
         logoutButton.setBackground(new Color(231, 76, 60));
         logoutButton.setForeground(Color.WHITE);
@@ -56,8 +82,9 @@ public class ManagerView extends JFrame {
             }
         });
         
-        logoutPanel.add(logoutButton);
-        add(logoutPanel, BorderLayout.NORTH);
+        buttonsPanel.add(switchButton);
+        buttonsPanel.add(logoutButton);
+        add(buttonsPanel, BorderLayout.NORTH);
     }
     
     // Phương thức để thay đổi kích thước icon

@@ -6,10 +6,13 @@ import com.formdev.flatlaf.FlatLightLaf;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import view.manager.ManagerView;
+import view.manager.LoginManager;
+import view.customer.SignIn;
 
 public class Main extends JFrame {
 
     private int userId;
+    private JComboBox<String> roleComboBox;
 
     public Main(int userId) {
         this.userId = userId;
@@ -47,14 +50,14 @@ public class Main extends JFrame {
             customerButton.addActionListener(e -> {
                 // Mở giao diện khách hàng
                 frame.dispose(); // Đóng cửa sổ hiện tại
-                // TODO: Thêm code mở giao diện khách hàng
+                new SignIn().setVisible(true);
             });
 
             // Tạo nút cho quản lý
             JButton adminButton = createStyledButton("Quản Lý", new Color(60, 179, 113));
             adminButton.addActionListener(e -> {
                 frame.dispose(); // Đóng cửa sổ hiện tại
-                new ManagerView().setVisible(true);
+                new LoginManager().setVisible(true);
             });
 
             // Thêm các components vào panel
