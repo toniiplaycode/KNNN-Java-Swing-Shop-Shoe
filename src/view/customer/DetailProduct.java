@@ -9,6 +9,7 @@ import java.net.URL;
 
 public class DetailProduct extends JFrame {
     private int productId;
+    private int userId;
     private DecimalFormat formatter = new DecimalFormat("#,###");
     private JSpinner quantitySpinner;
     private JComboBox<String> sizeComboBox;
@@ -21,8 +22,9 @@ public class DetailProduct extends JFrame {
     private JPanel rightPanel;
     private JLabel priceLabel;
     
-    public DetailProduct(int productId) {
+    public DetailProduct(int productId, int userId) {
         this.productId = productId;
+        this.userId = userId;
         
         setTitle("Chi tiết sản phẩm");
         setSize(1000, 600);
@@ -129,6 +131,8 @@ public class DetailProduct extends JFrame {
         addToCartButton.setBackground(new Color(46, 204, 113));
         addToCartButton.setForeground(Color.WHITE);
         addToCartButton.setFocusPainted(false);
+        
+        addToCartButton.addActionListener(e -> addToCart());
         buttonPanel.add(addToCartButton);
         panel.add(buttonPanel);
         
@@ -161,7 +165,10 @@ public class DetailProduct extends JFrame {
     
     private void loadProductData() {
         try (Connection conn = DBConnection.getConnection()) {
-            String query = "SELECT p.*, c.name as category_name FROM products p " +
+            // Truy vấn thông tin sản phẩm và tổng số lượng tồn kho
+            String query = "SELECT p.*, c.name as category_name, " +
+                          "(SELECT COALESCE(SUM(pv.stock), 0) FROM product_variants pv WHERE pv.product_id = p.id) as total_stock " +
+                          "FROM products p " +
                           "JOIN categories c ON p.category_id = c.id " +
                           "WHERE p.id = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
@@ -176,7 +183,7 @@ public class DetailProduct extends JFrame {
                     rs.getString("description"),
                     rs.getString("image_url"),
                     rs.getDouble("price"),
-                    rs.getInt("stock")
+                    rs.getInt("total_stock")  // Sử dụng tổng số lượng từ product_variants
                 );
                 
                 // Load sizes
@@ -227,21 +234,107 @@ public class DetailProduct extends JFrame {
     
     private void loadSizes() {
         try (Connection conn = DBConnection.getConnection()) {
-            String query = "SELECT size FROM sizes ORDER BY size";
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(query);
+            String query = "SELECT s.size, COALESCE(pv.stock, 0) as stock " +
+                          "FROM sizes s " +
+                          "LEFT JOIN product_variants pv ON s.id = pv.size_id AND pv.product_id = ? " +
+                          "ORDER BY s.size";
+                          
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, productId);
+            ResultSet rs = stmt.executeQuery();
             
+            sizeComboBox.removeAllItems();
             while (rs.next()) {
-                sizeComboBox.addItem(rs.getString("size"));
+                String size = rs.getString("size");
+                int stock = rs.getInt("stock");
+                String item = size + " (Còn " + stock + ")";
+                if (stock > 0) {
+                    sizeComboBox.addItem(item);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
     
+    private void addToCart() {
+        if (sizeComboBox.getSelectedIndex() == -1) {
+            JOptionPane.showMessageDialog(this, 
+                "Vui lòng chọn size giày!",
+                "Thông báo",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        int quantity = (int) quantitySpinner.getValue();
+        // Lấy size từ chuỗi "39 (Còn 10)"
+        String selectedSize = sizeComboBox.getSelectedItem().toString().split(" ")[0];
+        
+        try (Connection conn = DBConnection.getConnection()) {
+            // Lấy variant_id dựa trên product_id và size
+            String variantQuery = "SELECT pv.id FROM product_variants pv " +
+                                "JOIN sizes s ON pv.size_id = s.id " +
+                                "WHERE pv.product_id = ? AND s.size = ?";
+            PreparedStatement variantStmt = conn.prepareStatement(variantQuery);
+            variantStmt.setInt(1, productId);
+            variantStmt.setString(2, selectedSize);
+            
+            ResultSet variantRs = variantStmt.executeQuery();
+            
+            if (variantRs.next()) {
+                int variantId = variantRs.getInt("id");
+                
+                // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
+                String checkQuery = "SELECT id, quantity FROM cart WHERE user_id = ? AND variant_id = ?";
+                PreparedStatement checkStmt = conn.prepareStatement(checkQuery);
+                checkStmt.setInt(1, userId);
+                checkStmt.setInt(2, variantId);
+                
+                ResultSet checkRs = checkStmt.executeQuery();
+                
+                if (checkRs.next()) {
+                    // Cập nhật số lượng nếu đã có trong giỏ
+                    String updateQuery = "UPDATE cart SET quantity = quantity + ? WHERE id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                    updateStmt.setInt(1, quantity);
+                    updateStmt.setInt(2, checkRs.getInt("id"));
+                    updateStmt.executeUpdate();
+                } else {
+                    // Thêm mới vào giỏ hàng
+                    String insertQuery = "INSERT INTO cart (user_id, variant_id, quantity) VALUES (?, ?, ?)";
+                    PreparedStatement insertStmt = conn.prepareStatement(insertQuery);
+                    insertStmt.setInt(1, userId);
+                    insertStmt.setInt(2, variantId);
+                    insertStmt.setInt(3, quantity);
+                    insertStmt.executeUpdate();
+                }
+                
+                JOptionPane.showMessageDialog(this,
+                    "Đã thêm vào giỏ hàng!",
+                    "Thành công",
+                    JOptionPane.INFORMATION_MESSAGE);
+                    
+                dispose(); // Đóng cửa sổ chi tiết sau khi thêm vào giỏ
+                
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Không tìm thấy sản phẩm với size này!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                "Lỗi khi thêm vào giỏ hàng: " + e.getMessage(),
+                "Lỗi",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new DetailProduct(1).setVisible(true);
+            new DetailProduct(1, 1).setVisible(true);
         });
     }
 } 

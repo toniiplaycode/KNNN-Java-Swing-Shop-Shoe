@@ -15,8 +15,10 @@ public class Products extends JPanel {
     private JTextField searchField;
     private JComboBox<String> categoryComboBox;
     private DecimalFormat formatter = new DecimalFormat("#,###");
+    private int userId;
     
-    public Products() {
+    public Products(int userId) {
+        this.userId = userId;
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
@@ -132,7 +134,7 @@ public class Products extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) { // Single click
-                    new DetailProduct(id).setVisible(true);
+                    new DetailProduct(id, userId).setVisible(true);
                 }
             }
             
@@ -190,14 +192,33 @@ public class Products extends JPanel {
         pricePanel.add(priceLabel);
         
         // Button Panel
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.setPreferredSize(new Dimension(230, 40));
-        buttonPanel.setMaximumSize(new Dimension(230, 40));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setOpaque(false);
         
-        JButton buyButton = createStyledButton("Mua ngay", new Color(46, 204, 113));
-        buyButton.setPreferredSize(new Dimension(120, 30));
-        buttonPanel.add(buyButton);
+        JButton addToCartButton = new JButton("Thêm vào giỏ");
+        addToCartButton.setBackground(new Color(46, 204, 113));
+        addToCartButton.setForeground(Color.WHITE);
+        addToCartButton.setFocusPainted(false);
+        addToCartButton.setBorderPainted(false);
+        addToCartButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Hover effect
+        addToCartButton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                addToCartButton.setBackground(new Color(46, 204, 113).brighter());
+            }
+            
+            public void mouseExited(MouseEvent e) {
+                addToCartButton.setBackground(new Color(46, 204, 113));
+            }
+        });
+        
+        // Add to cart action
+        addToCartButton.addActionListener(e -> {
+            new DetailProduct(id, userId).setVisible(true);
+        });
+        
+        buttonPanel.add(addToCartButton);
         
         // Add components với khoảng cách cố định
         card.add(Box.createVerticalStrut(10));
@@ -282,7 +303,7 @@ public class Products extends JPanel {
     public static void main(String[] args) {
         JFrame frame = new JFrame("Sản phẩm");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(new Products());
+        frame.add(new Products(0));
         frame.setSize(1200, 700);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);

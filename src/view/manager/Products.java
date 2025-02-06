@@ -91,23 +91,23 @@ public class Products extends JPanel {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 10));
         
         // Thêm cột "Thao tác" vào columns
-        String[] columns = {"ID", "Tên sản phẩm", "Danh mục", "Mô tả", "Giá", "Hình ảnh", "Trạng thái", "Tồn kho", "Ngày tạo", "Thao tác"};
+        String[] columns = {"ID", "Tên sản phẩm", "Danh mục", "Mô tả", "Giá", "Hình ảnh", "Trạng thái", "Ngày tạo", "Thao tác"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 9; // Chỉ cho phép edit cột thao tác
+                return column == 8; // Chỉ cho phép edit cột thao tác
             }
             
             @Override
             public Class<?> getColumnClass(int column) {
-                return column == 9 ? JButton.class : Object.class;
+                return column == 8 ? JButton.class : Object.class;
             }
         };
         
         productTable = new JTable(tableModel);
         
         // Thêm button renderer và editor cho cột thao tác
-        TableColumn actionColumn = productTable.getColumnModel().getColumn(9);
+        TableColumn actionColumn = productTable.getColumnModel().getColumn(8);
         actionColumn.setCellRenderer(new ButtonRenderer());
         actionColumn.setCellEditor(new ButtonEditor());
         
@@ -318,12 +318,11 @@ public class Products extends JPanel {
                     rs.getString("name"),
                     rs.getString("category_name"),
                     rs.getString("description"),
-                    String.format("%,d", rs.getLong("price")),
+                    formatter.format(rs.getDouble("price")),
                     rs.getString("image_url"),
-                    rs.getInt("status") == 1 ? "Đang bán" : "Ngưng bán",
-                    rs.getInt("stock"),
+                    rs.getString("status").equals("1") ? "Đang bán" : "Ngưng bán",
                     rs.getTimestamp("created_at"),
-                    createReviewButton(rs.getInt("id"))
+                    "Xem đánh giá"
                 };
                 tableModel.addRow(row);
             }
@@ -482,12 +481,11 @@ public class Products extends JPanel {
                     rs.getString("name"),
                     rs.getString("category_name"),
                     rs.getString("description"),
-                    String.format("%,d", rs.getLong("price")),
+                    formatter.format(rs.getDouble("price")),
                     rs.getString("image_url"),
-                    rs.getInt("status") == 1 ? "Đang bán" : "Ngưng bán",
-                    rs.getInt("stock"),
+                    rs.getString("status").equals("1") ? "Đang bán" : "Ngưng bán",
                     rs.getTimestamp("created_at"),
-                    createReviewButton(rs.getInt("id"))
+                    "Xem đánh giá"
                 };
                 tableModel.addRow(row);
             }

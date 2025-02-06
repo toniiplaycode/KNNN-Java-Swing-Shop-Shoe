@@ -31,7 +31,7 @@ public class CustomerView extends JFrame {
         
         // Content Panel
         contentPanel = new JPanel(new BorderLayout());
-        contentPanel.add(new Products(), BorderLayout.CENTER);
+        contentPanel.add(new Products(userId), BorderLayout.CENTER);
         mainPanel.add(contentPanel, BorderLayout.CENTER);
         
         add(mainPanel);
@@ -40,13 +40,35 @@ public class CustomerView extends JFrame {
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(new Color(41, 128, 185));
-        headerPanel.setPreferredSize(new Dimension(getWidth(), 60));
+        headerPanel.setPreferredSize(new Dimension(getWidth(), 100));
         headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        
+        // Left Panel - Logo & Shop Info
+        JPanel leftPanel = new JPanel(new BorderLayout(10, 5));
+        leftPanel.setOpaque(false);
         
         // Logo
         JLabel logoLabel = new JLabel("SHOE SHOP");
         logoLabel.setFont(new Font("Arial", Font.BOLD, 24));
         logoLabel.setForeground(Color.WHITE);
+        
+        // Shop Info
+        JPanel shopInfoPanel = new JPanel(new GridLayout(2, 1, 0, 2));
+        shopInfoPanel.setOpaque(false);
+        
+        JLabel addressLabel = new JLabel("Địa chỉ: 168 Nguyễn Văn Cừ (nối dài), Phường An Bình, Q. Ninh Kiều, TP. Cần Thơ.");
+        addressLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        addressLabel.setForeground(Color.WHITE);
+        
+        JLabel contactLabel = new JLabel("Hotline: 1900 1234 | Email: contact@shoeshop.com");
+        contactLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        contactLabel.setForeground(Color.WHITE);
+        
+        shopInfoPanel.add(addressLabel);
+        shopInfoPanel.add(contactLabel);
+        
+        leftPanel.add(logoLabel, BorderLayout.NORTH);
+        leftPanel.add(shopInfoPanel, BorderLayout.CENTER);
         
         // User Info & Buttons Panel
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
@@ -83,7 +105,7 @@ public class CustomerView extends JFrame {
         rightPanel.add(cartButton);
         rightPanel.add(logoutButton);
         
-        headerPanel.add(logoLabel, BorderLayout.WEST);
+        headerPanel.add(leftPanel, BorderLayout.WEST);
         headerPanel.add(rightPanel, BorderLayout.EAST);
         
         return headerPanel;
