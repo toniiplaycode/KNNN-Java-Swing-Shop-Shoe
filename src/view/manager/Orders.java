@@ -253,7 +253,7 @@ public class Orders extends JPanel {
                     panel.add(new JLabel(rs.getTimestamp("order_date").toString()));
                     panel.add(new JLabel("Phương thức thanh toán:"));
                     panel.add(new JLabel(rs.getString("payment_method") != null ? 
-                            rs.getString("payment_method") : "Chưa thanh toán"));
+                            getPaymentMethodText(rs.getString("payment_method")) : "Chưa thanh toán"));
                     panel.add(new JLabel("Trạng thái thanh toán:"));
                     panel.add(new JLabel(rs.getString("payment_status") != null ? 
                             getPaymentStatusText(rs.getString("payment_status")) : "Chưa thanh toán"));
@@ -349,9 +349,20 @@ public class Orders extends JPanel {
         private String getPaymentStatusText(String status) {
             switch (status) {
                 case "pending": return "Chờ thanh toán";
-                case "completed": return "Đã thanh toán";
+                case "paid": return "Đã thanh toán";
                 case "failed": return "Thanh toán thất bại";
+                case "refunded": return "Đã hoàn tiền";
                 default: return status;
+            }
+        }
+        
+        private String getPaymentMethodText(String method) {
+            switch (method) {
+                case "cash": return "Tiền mặt";
+                case "credit_card": return "Thẻ tín dụng";
+                case "paypal": return "PayPal";
+                case "bank_transfer": return "Chuyển khoản";
+                default: return method;
             }
         }
     }

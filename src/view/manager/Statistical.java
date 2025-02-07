@@ -38,9 +38,7 @@ public class Statistical extends JPanel {
         // Thêm các tab thống kê
         tabbedPane.addTab("Doanh thu", createRevenuePanel());
         tabbedPane.addTab("Đơn hàng", createOrdersPanel());
-        tabbedPane.addTab("Sản phẩm bán chạy", createBestSellerPanel());
         tabbedPane.addTab("Khách hàng", createCustomersPanel());
-        tabbedPane.addTab("Đánh giá", createReviewsPanel());
         tabbedPane.addTab("Thanh toán", createPaymentsPanel());
         
         add(tabbedPane);
@@ -217,52 +215,6 @@ public class Statistical extends JPanel {
         return panel;
     }
     
-    // Panel Sản phẩm bán chạy
-    private JPanel createBestSellerPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        // Tạo bảng sản phẩm bán chạy
-        String[] columns = {"STT", "Tên sản phẩm", "Danh mục", "Số lượng đã bán", "Doanh thu"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0);
-        JTable table = new JTable(model);
-        
-        try (Connection conn = DBConnection.getConnection()) {
-            String query = "SELECT p.name, c.name as category, " +
-                          "SUM(od.quantity) as total_quantity, " +
-                          "SUM(od.quantity * od.unit_price) as revenue " +
-                          "FROM products p " +
-                          "JOIN categories c ON p.category_id = c.id " +
-                          "JOIN order_details od ON p.id = od.variant_id " +
-                          "GROUP BY p.id " +
-                          "ORDER BY total_quantity DESC " +
-                          "LIMIT 10";
-                          
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(query);
-            
-            int stt = 1;
-            while (rs.next()) {
-                Object[] row = {
-                    stt++,
-                    rs.getString("name"),
-                    rs.getString("category"),
-                    rs.getInt("total_quantity"),
-                    formatter.format(rs.getDouble("revenue")) + " đ"
-                };
-                model.addRow(row);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        panel.add(new JLabel("Top 10 sản phẩm bán chạy nhất"), BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
     // Panel Khách hàng
     private JPanel createCustomersPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -303,45 +255,6 @@ public class Statistical extends JPanel {
         JScrollPane scrollPane = new JScrollPane(table);
         panel.add(new JLabel("Top 10 khách hàng tiềm năng"), BorderLayout.NORTH);
         panel.add(scrollPane, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    // Panel Đánh giá
-    private JPanel createReviewsPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        try (Connection conn = DBConnection.getConnection()) {
-            // Thống kê số sao đánh giá
-            String query = "SELECT rating, COUNT(*) as count FROM reviews GROUP BY rating";
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(query);
-            
-            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-            while (rs.next()) {
-                int rating = rs.getInt("rating");
-                int count = rs.getInt("count");
-                dataset.setValue(count, "Số lượng", rating + " sao");
-            }
-            
-            JFreeChart chart = ChartFactory.createBarChart(
-                "Thống kê đánh giá sản phẩm",
-                "Số sao",
-                "Số lượng",
-                dataset,
-                PlotOrientation.VERTICAL,
-                false,
-                true,
-                false
-            );
-            
-            ChartPanel chartPanel = new ChartPanel(chart);
-            panel.add(chartPanel, BorderLayout.CENTER);
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
         
         return panel;
     }

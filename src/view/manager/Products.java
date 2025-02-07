@@ -91,25 +91,15 @@ public class Products extends JPanel {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 10));
         
         // Thêm cột "Thao tác" vào columns
-        String[] columns = {"ID", "Tên sản phẩm", "Danh mục", "Mô tả", "Giá", "Hình ảnh", "Trạng thái", "Ngày tạo", "Thao tác"};
+        String[] columns = {"ID", "Tên sản phẩm", "Danh mục", "Mô tả", "Giá", "Hình ảnh", "Trạng thái", "Ngày tạo"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 8; // Chỉ cho phép edit cột thao tác
-            }
-            
-            @Override
-            public Class<?> getColumnClass(int column) {
-                return column == 8 ? JButton.class : Object.class;
+                return false; // Không cho phép edit trực tiếp trên bảng
             }
         };
         
         productTable = new JTable(tableModel);
-        
-        // Thêm button renderer và editor cho cột thao tác
-        TableColumn actionColumn = productTable.getColumnModel().getColumn(8);
-        actionColumn.setCellRenderer(new ButtonRenderer());
-        actionColumn.setCellEditor(new ButtonEditor());
         
         // Thêm ImageRenderer cho cột hình ảnh
         TableColumn imageColumn = productTable.getColumnModel().getColumn(5);
@@ -321,8 +311,7 @@ public class Products extends JPanel {
                     formatter.format(rs.getDouble("price")),
                     rs.getString("image_url"),
                     rs.getString("status").equals("1") ? "Đang bán" : "Ngưng bán",
-                    rs.getTimestamp("created_at"),
-                    "Xem đánh giá"
+                    rs.getTimestamp("created_at")
                 };
                 tableModel.addRow(row);
             }
@@ -484,8 +473,7 @@ public class Products extends JPanel {
                     formatter.format(rs.getDouble("price")),
                     rs.getString("image_url"),
                     rs.getString("status").equals("1") ? "Đang bán" : "Ngưng bán",
-                    rs.getTimestamp("created_at"),
-                    "Xem đánh giá"
+                    rs.getTimestamp("created_at")
                 };
                 tableModel.addRow(row);
             }
@@ -609,192 +597,6 @@ public class Products extends JPanel {
             imagePreview.setIcon(null);
             imagePreview.setText("No image");
         }
-    }
-    
-    private JButton createReviewButton(int productId) {
-        JButton reviewButton = new JButton("Xem đánh giá");
-        reviewButton.addActionListener(e -> showReviewDialog(productId));
-        return reviewButton;
-    }
-    
-    private void showReviewDialog(int productId) {
-        StringBuilder reviews = new StringBuilder();
-        try (Connection conn = DBConnection.getConnection()) {
-            String query = "SELECT review FROM reviews WHERE product_id = ?";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, productId);
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                reviews.append(rs.getString("review")).append("\n");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải đánh giá: " + e.getMessage());
-            return;
-        }
-        
-        // Show the reviews in a dialog
-        JTextArea textArea = new JTextArea(reviews.toString());
-        textArea.setEditable(false);
-        JOptionPane.showMessageDialog(this, new JScrollPane(textArea), "Đánh giá sản phẩm", JOptionPane.INFORMATION_MESSAGE);
-        
-        System.out.println("Fetching reviews for product ID: " + productId);
-        System.out.println("Number of reviews fetched: " + reviews.length());
-    }
-    
-    // Thêm class ButtonRenderer
-    private class ButtonRenderer extends JButton implements TableCellRenderer {
-        public ButtonRenderer() {
-            setOpaque(true);
-            setBackground(new Color(52, 152, 219));
-            setForeground(Color.WHITE);
-        }
-        
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
-            setText("Xem đánh giá");
-            return this;
-        }
-    }
-    
-    // Thêm class ButtonEditor
-    private class ButtonEditor extends DefaultCellEditor {
-        private JButton button;
-        
-        public ButtonEditor() {
-            super(new JCheckBox());
-            button = new JButton("Xem đánh giá");
-            button.setBackground(new Color(52, 152, 219));
-            button.setForeground(Color.WHITE);
-            
-            button.addActionListener(e -> {
-                fireEditingStopped();
-                int selectedRow = productTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    int productId = (int) productTable.getValueAt(selectedRow, 0);
-                    showReviewsDialog(productId);
-                }
-            });
-        }
-        
-        @Override
-        public Component getTableCellEditorComponent(JTable table, Object value,
-                boolean isSelected, int row, int column) {
-            return button;
-        }
-        
-        @Override
-        public Object getCellEditorValue() {
-            return "Xem đánh giá";
-        }
-    }
-    
-    // Thêm method hiển thị dialog đánh giá
-    private void showReviewsDialog(int productId) {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Đánh giá sản phẩm", true);
-        dialog.setLayout(new BorderLayout(10, 10));
-        dialog.setSize(800, 400);
-        dialog.setLocationRelativeTo(null);
-        
-        // Panel thông tin sản phẩm
-        JPanel productInfoPanel = new JPanel(new GridLayout(1, 2, 10, 5));
-        productInfoPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createEmptyBorder(10, 10, 5, 10),
-            BorderFactory.createTitledBorder("Thông tin sản phẩm")
-        ));
-        
-        try (Connection conn = DBConnection.getConnection()) {
-            String query = "SELECT p.*, c.name as category_name FROM products p " +
-                          "JOIN categories c ON p.category_id = c.id WHERE p.id = ?";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, productId);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                productInfoPanel.add(new JLabel("Tên sản phẩm: " + rs.getString("name")));
-                productInfoPanel.add(new JLabel("Danh mục: " + rs.getString("category_name")));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        
-        // Bảng đánh giá
-        String[] columns = {"Người dùng", "Đánh giá", "Bình luận", "Ngày đánh giá"};
-        DefaultTableModel reviewModel = new DefaultTableModel(columns, 0);
-        JTable reviewTable = new JTable(reviewModel);
-        
-        // Tạo renderer cho cột đánh giá (hiển thị sao)
-        reviewTable.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
-                panel.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
-                
-                int stars = Integer.parseInt(value.toString().split(" ")[0]);
-                for (int i = 0; i < stars; i++) {
-                    // Thay đổi kích thước icon sao
-                    ImageIcon starIcon = new ImageIcon("src/icons/star.png");
-                    Image scaledImg = starIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH); // Kích thước 16x16
-                    JLabel starLabel = new JLabel(new ImageIcon(scaledImg));
-                    panel.add(starLabel);
-                }
-                return panel;
-            }
-        });
-        
-        boolean hasReviews = false;
-        try (Connection conn = DBConnection.getConnection()) {
-            String query = "SELECT r.*, u.username FROM reviews r " +
-                          "JOIN users u ON r.user_id = u.id " +
-                          "WHERE r.product_id = ? " +
-                          "ORDER BY r.review_date DESC";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, productId);
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                hasReviews = true;
-                Object[] row = {
-                    rs.getString("username"),
-                    rs.getInt("rating") + " sao",
-                    rs.getString("comment"),
-                    rs.getTimestamp("review_date")
-                };
-                reviewModel.addRow(row);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        
-        // Nếu không có đánh giá, hiển thị thông báo
-        if (!hasReviews) {
-            dialog.remove(reviewTable);
-            JLabel noReviewLabel = new JLabel("Chưa có đánh giá nào!", SwingConstants.CENTER);
-            noReviewLabel.setFont(new Font("Arial", Font.BOLD, 16));
-            noReviewLabel.setForeground(new Color(150, 150, 150));
-            dialog.add(noReviewLabel, BorderLayout.CENTER);
-        } else {
-            // Style cho bảng
-            reviewTable.setRowHeight(30);
-            reviewTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-            reviewTable.setFont(new Font("Arial", Font.PLAIN, 12));
-            dialog.add(new JScrollPane(reviewTable), BorderLayout.CENTER);
-        }
-        
-        // Thêm components vào dialog
-        dialog.add(productInfoPanel, BorderLayout.NORTH);
-        
-        // Panel nút đóng
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton closeButton = createStyledButton("Đóng", new Color(149, 165, 166));
-        closeButton.addActionListener(e -> dialog.dispose());
-        buttonPanel.add(closeButton);
-        dialog.add(buttonPanel, BorderLayout.SOUTH);
-        
-        dialog.setVisible(true);
     }
     
     public static void main(String[] args) {

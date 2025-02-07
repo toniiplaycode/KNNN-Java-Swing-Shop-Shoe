@@ -27,7 +27,6 @@ public class ManagerView extends JFrame {
         tabbedPane.addTab("Biến thể", resizeIcon(new ImageIcon("src/icons/variant.png"), 20, 20), new Variants());
         tabbedPane.addTab("Kho hàng", resizeIcon(new ImageIcon("src/icons/stock.png"), 20, 20), new Stock());
         tabbedPane.addTab("Đơn hàng", resizeIcon(new ImageIcon("src/icons/order.png"), 20, 20), new Orders());
-        tabbedPane.addTab("Thanh toán", resizeIcon(new ImageIcon("src/icons/payment.png"), 20, 20), new Payments());
         tabbedPane.addTab("Người dùng", resizeIcon(new ImageIcon("src/icons/user.png"), 20, 20), new Users());
         tabbedPane.addTab("Thống kê", resizeIcon(new ImageIcon("src/icons/statistical.png"), 20, 20), new Statistical());
         

@@ -100,39 +100,54 @@ public class DetailProduct extends JFrame {
         priceLabel.setForeground(new Color(231, 76, 60));
         pricePanel.add(priceLabel);
         panel.add(pricePanel);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(20));
         
-        // Size Selection
-        JPanel sizePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        // Size & Color Selection Panel
+        JPanel selectionPanel = new JPanel(new GridLayout(2, 1, 0, 10));
+        selectionPanel.setBackground(Color.WHITE);
+        
+        // Size ComboBox Panel
+        JPanel sizePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         sizePanel.setBackground(Color.WHITE);
-        sizePanel.add(new JLabel("Chọn size giày:  "));
+        JLabel sizeLabel = new JLabel("Chọn size giày và màu sắc:");
+        sizeLabel.setFont(new Font("Arial", Font.BOLD, 14));
         sizeComboBox = new JComboBox<>();
-        sizeComboBox.setPreferredSize(new Dimension(80, 25));
+        sizeComboBox.setPreferredSize(new Dimension(300, 40));
+        sizeComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        sizePanel.add(sizeLabel);
+        sizePanel.add(Box.createHorizontalStrut(10));
         sizePanel.add(sizeComboBox);
-        panel.add(sizePanel);
-        panel.add(Box.createVerticalStrut(5));
         
-        // Quantity Selection
-        JPanel quantityPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        // Quantity Panel
+        JPanel quantityPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         quantityPanel.setBackground(Color.WHITE);
-        quantityPanel.add(new JLabel("Số lượng:  "));
+        JLabel quantityLabel = new JLabel("Số lượng:");
+        quantityLabel.setFont(new Font("Arial", Font.BOLD, 14));
         SpinnerNumberModel spinnerModel = new SpinnerNumberModel(1, 1, 100, 1);
         quantitySpinner = new JSpinner(spinnerModel);
-        quantitySpinner.setPreferredSize(new Dimension(80, 25));
+        quantitySpinner.setPreferredSize(new Dimension(80, 35)); // Tăng kích thước
+        quantitySpinner.setFont(new Font("Arial", Font.PLAIN, 14));
+        quantityPanel.add(quantityLabel);
         quantityPanel.add(quantitySpinner);
-        panel.add(quantityPanel);
-        panel.add(Box.createVerticalStrut(10));
+        
+        selectionPanel.add(sizePanel);
+        selectionPanel.add(quantityPanel);
+        panel.add(selectionPanel);
+        panel.add(Box.createVerticalStrut(20));
         
         // Add to Cart Button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        buttonPanel.setBackground(Color.WHITE);
         JButton addToCartButton = new JButton("Thêm vào giỏ hàng");
-        addToCartButton.setPreferredSize(new Dimension(200, 35));
+        addToCartButton.setFont(new Font("Arial", Font.BOLD, 14));
         addToCartButton.setBackground(new Color(46, 204, 113));
         addToCartButton.setForeground(Color.WHITE);
         addToCartButton.setFocusPainted(false);
-        
+        addToCartButton.setBorderPainted(false);
+        addToCartButton.setPreferredSize(new Dimension(200, 40));
+        addToCartButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         addToCartButton.addActionListener(e -> addToCart());
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.setBackground(Color.WHITE);
         buttonPanel.add(addToCartButton);
         panel.add(buttonPanel);
         
@@ -234,10 +249,13 @@ public class DetailProduct extends JFrame {
     
     private void loadSizes() {
         try (Connection conn = DBConnection.getConnection()) {
-            String query = "SELECT s.size, COALESCE(pv.stock, 0) as stock " +
+            String query = "SELECT s.size, c.color_name, COALESCE(pv.stock, 0) as stock " +
                           "FROM sizes s " +
-                          "LEFT JOIN product_variants pv ON s.id = pv.size_id AND pv.product_id = ? " +
-                          "ORDER BY s.size";
+                          "CROSS JOIN colors c " +
+                          "LEFT JOIN product_variants pv ON s.id = pv.size_id " +
+                          "AND c.id = pv.color_id " +
+                          "AND pv.product_id = ? " +
+                          "ORDER BY s.size, c.color_name";
                           
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setInt(1, productId);
@@ -246,8 +264,9 @@ public class DetailProduct extends JFrame {
             sizeComboBox.removeAllItems();
             while (rs.next()) {
                 String size = rs.getString("size");
+                String color = rs.getString("color_name");
                 int stock = rs.getInt("stock");
-                String item = size + " (Còn " + stock + ")";
+                String item = size + " - " + color + " (Còn " + stock + ")";
                 if (stock > 0) {
                     sizeComboBox.addItem(item);
                 }
@@ -260,24 +279,29 @@ public class DetailProduct extends JFrame {
     private void addToCart() {
         if (sizeComboBox.getSelectedIndex() == -1) {
             JOptionPane.showMessageDialog(this, 
-                "Vui lòng chọn size giày!",
+                "Vui lòng chọn size và màu sắc!",
                 "Thông báo",
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
         
         int quantity = (int) quantitySpinner.getValue();
-        // Lấy size từ chuỗi "39 (Còn 10)"
-        String selectedSize = sizeComboBox.getSelectedItem().toString().split(" ")[0];
+        // Lấy size và color từ chuỗi "39 - Đen (Còn 10)"
+        String selectedItem = sizeComboBox.getSelectedItem().toString();
+        String[] parts = selectedItem.split(" - ");
+        String selectedSize = parts[0];
+        String selectedColor = parts[1].split(" \\(")[0];
         
         try (Connection conn = DBConnection.getConnection()) {
-            // Lấy variant_id dựa trên product_id và size
+            // Lấy variant_id dựa trên product_id, size và color
             String variantQuery = "SELECT pv.id FROM product_variants pv " +
                                 "JOIN sizes s ON pv.size_id = s.id " +
-                                "WHERE pv.product_id = ? AND s.size = ?";
+                                "JOIN colors c ON pv.color_id = c.id " +
+                                "WHERE pv.product_id = ? AND s.size = ? AND c.color_name = ?";
             PreparedStatement variantStmt = conn.prepareStatement(variantQuery);
             variantStmt.setInt(1, productId);
             variantStmt.setString(2, selectedSize);
+            variantStmt.setString(3, selectedColor);
             
             ResultSet variantRs = variantStmt.executeQuery();
             

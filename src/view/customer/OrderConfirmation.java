@@ -7,6 +7,7 @@ import utils.DBConnection;
 import java.text.DecimalFormat;
 import javax.swing.table.*;
 import java.net.URL;
+import javax.swing.border.TitledBorder;
 
 public class OrderConfirmation extends JDialog {
     private int orderId;
@@ -16,7 +17,7 @@ public class OrderConfirmation extends JDialog {
         super(parent, "Thông tin đơn hàng", true);
         this.orderId = orderId;
         
-        setSize(600, 500);
+        setSize(600, 700);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout(10, 10));
         
@@ -34,7 +35,10 @@ public class OrderConfirmation extends JDialog {
         mainPanel.add(Box.createVerticalStrut(20));
         
         // Products Table Panel
-        mainPanel.add(createProductsPanel());
+        JPanel productsPanel = createProductsPanel();
+        JTable table = (JTable) ((JScrollPane) productsPanel.getComponent(0)).getViewport().getView();
+        table.setRowHeight(120);
+        mainPanel.add(productsPanel);
         mainPanel.add(Box.createVerticalStrut(20));
         
         // Payment Info Panel
@@ -42,6 +46,7 @@ public class OrderConfirmation extends JDialog {
         
         // Add to scroll pane
         JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setBorder(null);
         add(scrollPane, BorderLayout.CENTER);
         
         // Close Button
@@ -58,29 +63,65 @@ public class OrderConfirmation extends JDialog {
     }
     
     private JPanel createUserInfoPanel() {
-        JPanel panel = new JPanel(new GridLayout(4, 2, 10, 5));
-        panel.setBorder(BorderFactory.createTitledBorder("Thông tin khách hàng"));
+        JPanel panel = new JPanel(new GridLayout(4, 2, 10, 10));
+        panel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createEmptyBorder(), 
+            "Thông tin khách hàng",
+            TitledBorder.LEFT,
+            TitledBorder.TOP,
+            new Font("Arial", Font.BOLD, 14)
+        ));
+        panel.setPreferredSize(new Dimension(500, 150));
         
-        panel.add(new JLabel("Họ tên:"));
-        panel.add(new JLabel());
-        panel.add(new JLabel("Email:"));
-        panel.add(new JLabel());
-        panel.add(new JLabel("Số điện thoại:"));
-        panel.add(new JLabel());
-        panel.add(new JLabel("Địa chỉ:"));
-        panel.add(new JLabel());
+        Font labelFont = new Font("Arial", Font.BOLD, 12);
+        Font valueFont = new Font("Arial", Font.PLAIN, 12);
+        
+        JLabel[] labels = {
+            new JLabel("Họ tên:"),
+            new JLabel("Email:"),
+            new JLabel("Số điện thoại:"),
+            new JLabel("Địa chỉ:")
+        };
+        
+        for (JLabel label : labels) {
+            label.setFont(labelFont);
+            panel.add(label);
+            JLabel valueLabel = new JLabel();
+            valueLabel.setFont(valueFont);
+            panel.add(valueLabel);
+        }
         
         return panel;
     }
     
     private JPanel createOrderInfoPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 2, 10, 5));
-        panel.setBorder(BorderFactory.createTitledBorder("Thông tin đơn hàng"));
+        JPanel panel = new JPanel(new GridLayout(2, 2, 10, 10));
+        panel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createEmptyBorder(),
+            "Thông tin đơn hàng",
+            TitledBorder.LEFT,
+            TitledBorder.TOP,
+            new Font("Arial", Font.BOLD, 14)
+        ));
+        panel.setPreferredSize(new Dimension(500, 80));
         
-        panel.add(new JLabel("Mã đơn hàng:"));
-        panel.add(new JLabel("#" + orderId));
-        panel.add(new JLabel("Ngày đặt:"));
-        panel.add(new JLabel());
+        Font labelFont = new Font("Arial", Font.BOLD, 12);
+        Font valueFont = new Font("Arial", Font.PLAIN, 12);
+        
+        JLabel orderIdLabel = new JLabel("Mã đơn hàng:");
+        orderIdLabel.setFont(labelFont);
+        JLabel orderIdValue = new JLabel("#" + orderId);
+        orderIdValue.setFont(valueFont);
+        
+        JLabel dateLabel = new JLabel("Ngày đặt:");
+        dateLabel.setFont(labelFont);
+        JLabel dateValue = new JLabel();
+        dateValue.setFont(valueFont);
+        
+        panel.add(orderIdLabel);
+        panel.add(orderIdValue);
+        panel.add(dateLabel);
+        panel.add(dateValue);
         
         return panel;
     }
