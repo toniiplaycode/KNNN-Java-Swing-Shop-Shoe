@@ -271,32 +271,48 @@ public class Users extends JPanel {
     private void saveUser() {
         try (Connection conn = DBConnection.getConnection()) {
             int selectedRow = userTable.getSelectedRow();
+            String password = new String(passwordField.getPassword());
+            
             String query;
             if (selectedRow >= 0) {
                 // Update existing user
-                query = "UPDATE users SET username=?, password=?, email=?, phone=?, address=?, role=?, status=? WHERE id=?";
+                if (password.isEmpty()) {
+                    // Không update password nếu trường password trống
+                    query = "UPDATE users SET username=?, email=?, phone=?, address=?, role=?, status=? WHERE id=?";
+                } else {
+                    // Update cả password nếu có nhập password mới
+                    query = "UPDATE users SET username=?, password=?, email=?, phone=?, address=?, role=?, status=? WHERE id=?";
+                }
             } else {
                 // Insert new user
                 query = "INSERT INTO users (username, password, email, phone, address, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
             }
             
             PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, usernameField.getText());
-            stmt.setString(2, new String(passwordField.getPassword()));
-            stmt.setString(3, emailField.getText());
-            stmt.setString(4, phoneField.getText());
-            stmt.setString(5, addressField.getText());
+            int paramIndex = 1;
+            
+            stmt.setString(paramIndex++, usernameField.getText());
+            
+            if (selectedRow >= 0 && password.isEmpty()) {
+                // Bỏ qua password khi update mà không có password mới
+            } else {
+                stmt.setString(paramIndex++, password);
+            }
+            
+            stmt.setString(paramIndex++, emailField.getText());
+            stmt.setString(paramIndex++, phoneField.getText());
+            stmt.setString(paramIndex++, addressField.getText());
             
             // Chỉ lưu các giá trị hợp lệ cho role
-            String selectedRole = roleComboBox.getSelectedItem().toString().split(" - ")[0]; // Lấy giá trị trước dấu "-"
-            stmt.setString(6, selectedRole);
+            String selectedRole = roleComboBox.getSelectedItem().toString().split(" - ")[0];
+            stmt.setString(paramIndex++, selectedRole);
             
             // Set status based on selected item
             String selectedStatus = statusComboBox.getSelectedItem().toString();
-            stmt.setString(7, selectedStatus.startsWith("1") ? "1" : "0"); // Set status as "1" or "0"
+            stmt.setString(paramIndex++, selectedStatus.startsWith("1") ? "1" : "0");
             
             if (selectedRow >= 0) {
-                stmt.setInt(8, Integer.parseInt(tableModel.getValueAt(selectedRow, 0).toString()));
+                stmt.setInt(paramIndex++, Integer.parseInt(tableModel.getValueAt(selectedRow, 0).toString()));
             }
             
             stmt.executeUpdate();
