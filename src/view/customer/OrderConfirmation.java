@@ -14,10 +14,10 @@ public class OrderConfirmation extends JDialog {
     private DecimalFormat formatter = new DecimalFormat("#,###");
     
     public OrderConfirmation(JDialog parent, int orderId) {
-        super(parent, "Thông tin đơn hàng", true);
+        super(parent, "Thông tin hóa đơn đơn hàng", true);
         this.orderId = orderId;
         
-        setSize(600, 700);
+        setSize(600, 800);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout(10, 10));
         
@@ -25,6 +25,10 @@ public class OrderConfirmation extends JDialog {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Shop Info Panel
+        mainPanel.add(createShopInfoPanel());
+        mainPanel.add(Box.createVerticalStrut(20));
         
         // User Info Panel
         mainPanel.add(createUserInfoPanel());
@@ -60,6 +64,33 @@ public class OrderConfirmation extends JDialog {
         add(buttonPanel, BorderLayout.SOUTH);
         
         loadOrderData();
+    }
+    
+    private JPanel createShopInfoPanel() {
+        JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createEmptyBorder(),
+            "SHOE SHOP",
+            TitledBorder.CENTER,
+            TitledBorder.TOP,
+            new Font("Arial", Font.BOLD, 18)
+        ));
+        
+        Font infoFont = new Font("Arial", Font.PLAIN, 12);
+        
+        JLabel addressLabel = new JLabel("Địa chỉ: 168 Nguyễn Văn Cừ (nối dài), Phường An Bình, Q. Ninh Kiều, TP. Cần Thơ", SwingConstants.CENTER);
+        JLabel phoneLabel = new JLabel("Hotline: 1900 1234", SwingConstants.CENTER);
+        JLabel emailLabel = new JLabel("Email: contact@shoeshop.com", SwingConstants.CENTER);
+        
+        addressLabel.setFont(infoFont);
+        phoneLabel.setFont(infoFont);
+        emailLabel.setFont(infoFont);
+        
+        panel.add(addressLabel);
+        panel.add(phoneLabel);
+        panel.add(emailLabel);
+        
+        return panel;
     }
     
     private JPanel createUserInfoPanel() {
@@ -175,19 +206,20 @@ public class OrderConfirmation extends JDialog {
         try (Connection conn = DBConnection.getConnection()) {
             // Load user info
             String userQuery = "SELECT u.* FROM users u " +
-                             "JOIN orders o ON u.id = o.user_id " +
-                             "WHERE o.id = ?";
+                              "JOIN orders o ON u.id = o.user_id " +
+                              "WHERE o.id = ?";
             PreparedStatement userStmt = conn.prepareStatement(userQuery);
             userStmt.setInt(1, orderId);
             ResultSet userRs = userStmt.executeQuery();
             
             if (userRs.next()) {
-                JPanel userPanel = (JPanel) ((JScrollPane) getContentPane().getComponent(0)).getViewport().getView();
-                JPanel infoPanel = (JPanel) userPanel.getComponent(0);
-                ((JLabel) infoPanel.getComponent(1)).setText(userRs.getString("username"));
-                ((JLabel) infoPanel.getComponent(3)).setText(userRs.getString("email"));
-                ((JLabel) infoPanel.getComponent(5)).setText(userRs.getString("phone"));
-                ((JLabel) infoPanel.getComponent(7)).setText(userRs.getString("address"));
+                JPanel mainPanel = (JPanel) ((JScrollPane) getContentPane().getComponent(0)).getViewport().getView();
+                // User info panel là component thứ 2 (index 2) sau shop info và vertical strut
+                JPanel userInfoPanel = (JPanel) mainPanel.getComponent(2);
+                ((JLabel) userInfoPanel.getComponent(1)).setText(userRs.getString("username"));
+                ((JLabel) userInfoPanel.getComponent(3)).setText(userRs.getString("email"));
+                ((JLabel) userInfoPanel.getComponent(5)).setText(userRs.getString("phone"));
+                ((JLabel) userInfoPanel.getComponent(7)).setText(userRs.getString("address"));
             }
             
             // Load order info
@@ -197,8 +229,9 @@ public class OrderConfirmation extends JDialog {
             ResultSet orderRs = orderStmt.executeQuery();
             
             if (orderRs.next()) {
-                JPanel userPanel = (JPanel) ((JScrollPane) getContentPane().getComponent(0)).getViewport().getView();
-                JPanel orderPanel = (JPanel) userPanel.getComponent(2);
+                JPanel mainPanel = (JPanel) ((JScrollPane) getContentPane().getComponent(0)).getViewport().getView();
+                // Order info panel là component thứ 4 (index 4)
+                JPanel orderPanel = (JPanel) mainPanel.getComponent(4);
                 ((JLabel) orderPanel.getComponent(3)).setText(orderRs.getTimestamp("order_date").toString());
             }
             
@@ -214,8 +247,9 @@ public class OrderConfirmation extends JDialog {
             productsStmt.setInt(1, orderId);
             ResultSet productsRs = productsStmt.executeQuery();
             
-            JPanel userPanel = (JPanel) ((JScrollPane) getContentPane().getComponent(0)).getViewport().getView();
-            JPanel productsPanel = (JPanel) userPanel.getComponent(4);
+            JPanel mainPanel = (JPanel) ((JScrollPane) getContentPane().getComponent(0)).getViewport().getView();
+            // Products panel là component thứ 6 (index 6)
+            JPanel productsPanel = (JPanel) mainPanel.getComponent(6);
             JTable table = (JTable) ((JScrollPane) productsPanel.getComponent(0)).getViewport().getView();
             DefaultTableModel model = (DefaultTableModel) table.getModel();
             model.setRowCount(0);
@@ -244,7 +278,8 @@ public class OrderConfirmation extends JDialog {
             ResultSet paymentRs = paymentStmt.executeQuery();
             
             if (paymentRs.next()) {
-                JPanel paymentPanel = (JPanel) userPanel.getComponent(6);
+                // Payment info panel là component thứ 8 (index 8)
+                JPanel paymentPanel = (JPanel) mainPanel.getComponent(8);
                 String paymentMethod = switch(paymentRs.getString("payment_method")) {
                     case "cash" -> "Tiền mặt";
                     case "credit_card" -> "Thẻ tín dụng";
@@ -259,7 +294,7 @@ public class OrderConfirmation extends JDialog {
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
-                "Lỗi khi tải thông tin đơn hàng: " + e.getMessage(),
+                "Lỗi khi tải thông tin hóa đơn đơn hàng: " + e.getMessage(),
                 "Lỗi",
                 JOptionPane.ERROR_MESSAGE);
         }
